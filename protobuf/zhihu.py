@@ -25,11 +25,6 @@ import selenium.common
 # 某个话题
 #https://api.zhihu.com/topics/19551147
 
-# 获取某个视频
-#https://lens.zhihu.com/api/v4/videos/1115623205829926912
-
-# 获取某个问题
-#https://www.zhihu.com/api/v4/questions/323976342/answers?include=data[*].is_normal,admin_closed_comment,reward_info,is_collapsed,annotation_action,annotation_detail,collapse_reason,is_sticky,collapsed_by,suggest_edit,comment_count,can_comment,content,editable_content,voteup_count,reshipment_settings,comment_permission,created_time,updated_time,review_info,relevant_info,question,excerpt,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp,is_labeled,is_recognized,paid_info;data[*].mark_infos[*].url;data[*].author.follower_count,badge[*].topics&limit=5&offset=5&platform=desktop&sort_by=default
 # 知乎文章评论
 #https://www.zhihu.com/api/v4/articles/21711639/root_comments?order=normal&limit=20&offset=0&status=open
 # 21711639 专栏id
@@ -57,7 +52,7 @@ class Zhihu(object):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'
         }
         
-        self.path = os.path.curdir+'/data'
+        self.path = os.path.curdir+'\\data'
         self.author = ''
         
         if not os.path.exists(self.path):
@@ -65,11 +60,9 @@ class Zhihu(object):
 
         self.http = urllib3.PoolManager()
 
-        self.index = 0
         self.totals = 0
         self.author = ''
 
-        self.question = ''
         #self.driver = Chrome()
         #self.options = self.driver.create_options()
         
@@ -78,47 +71,35 @@ class Zhihu(object):
 
     def title(self,t):
         t = str(t)
-        if t is None:
-            self.index  = self.index + 1
-            return self.index 
-
-        for i in u"《》 ，？！。 【】（）%￥~‘’“”、|*：；\"',:!?|()$*&;.--「」～":
+        for i in u" ，？！。 【】（）%￥~‘’“”、|*：；\"',:!?|()$*&;.--":
             t = t.replace(i,'')
         return t
     
-    def genarate_path(self,author,):
+    def genarate_path(self,author):
         
         author.replace(' ','')
 
-        path = self.path + "/" + author
+        path = self.path + "\\" + author
         if not os.path.exists(path):
             os.mkdir(path)
         return path
 
     def downlaod_video(self,url,title):
-        path = self.path + '/' + self.author
-        if  not os.path.exists(path):
-            os.mkdir(path)
-        
-        if title is None:
-            file_name = self.path +'/'+ self.author +'/'+ str(self.totals) + '.mp4'
-        else:
-            title = self.title(title)
-            file_name = self.path +'/'+ self.author +'/' + title + '.mp4'
-        #print(file_name)
+        file_name = self.path +'\\'+ self.author +'\\' + title + '.mp4'
+        print(file_name)
         if os.path.exists(file_name):
             return
 
+        title = self.title(title)
         response =self.http.request("GET",url,self.download_headers)
-        #print(response.status)
+        print(response.status)
 
         with open(file_name,"wb") as f:
             size = f.write(response.data)
             f.flush()
             f.close()
             self.totals += 1
-        
-        print(self.totals,"\t",file_name,"\nFile size : \t%d MB" %(int(size/1024/1024)))
+            print(self.totals,"\t",file_name,"\nFile size : \t%d MB" %(int(size/1024/1024)))
               
    
     def download_text(self,content):
@@ -128,31 +109,6 @@ class Zhihu(object):
         #print("p : \t",p.text,"\n\n")
         #print(" \t",bs.next_element)     
         pass
-
-    def search_video_url(self,video_id):
-        '''
-            https://lens.zhihu.com/api/v4/videos/1115623205829926912
-            搜索某个视频地址根据视频 id
-        '''
-        url = "https://lens.zhihu.com/api/v4/videos/{}".format(video_id)
-
-        response = self.http.request("GET",url)
-
-        try:
-            data = json.loads(response.data.decode())
-            playlist = data['playlist']
-            #print("data: \t",data,"\nplaylist : \t",playlist,'\n','title: \t',data['title'])
-            title = self.title(data['title'])
-            #print('title : \t',title,'\n')
-            if "SD" in playlist.keys():
-                video_url = playlist['SD']['play_url']
-            else:
-                video_url = playlist['LD']["play_url"]
-                
-            #print("status : \t",response.status,"\ncontent-type: \t" ,response.headers["content-type"],"\nurl : \t",url,'\nvideo_url : \t',video_url)
-            self.downlaod_video(video_url,title)
-        except:
-            pass
 
     def search_people_v1(self,keyword):
 
@@ -262,53 +218,9 @@ class Zhihu(object):
         pass
 
 
-    def search_video_quetions(self,search_url):
-        '''
-            搜索某个问题下的所有发的视频
-        '''
-        #search_url = "https://www.zhihu.com/api/v4/questions/{}/answers?include=data[*].is_normal,admin_closed_comment,reward_info,is_collapsed,annotation_action,annotation_detail,collapse_reason,is_sticky,collapsed_by,suggest_edit,comment_count,can_comment,content,editable_content,voteup_count,reshipment_settings,comment_permission,created_time,updated_time,review_info,relevant_info,question,excerpt,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp,is_labeled,is_recognized,paid_info;data[*].mark_infos[*].url;data[*].author.follower_count,badge[*].topics&limit=5&offset=5&platform=desktop&sort_by=default".format(question_id)
-        pattern = re.compile(r"//www\.zhihu\.com/video/([0-9]+)")
-        response = self.http.request("GET",search_url)
-        print("status : \t",response.status,"\ncontent-type: \t" ,response.headers["content-type"],"\nurl : \t",search_url,'\n')
-
-        if 'json' in response.headers['content-type']:
-            data = json.loads(response.data.decode())
-            try:
-                page = data['paging']
-                is_end = page['is_end']
-                is_start = page['is_start']
-                if is_end or is_start:
-                    self.is_end = True
-                    return
-                search_url = page['next']
-
-                data = data['data']
-
-                #for d in data:
-                #print(data)
-
-                for anwser in data:
-                    #print(anwser)
-                    self.author = anwser['author']['name']
-                    self.question = anwser['question']['title']
-                    self.question = self.title(self.question)
-                    if "content" in anwser.keys():
-                        content = anwser['content']
-                            #print("content : \t",content,'\n')
-                        videos = pattern.findall(content)
-                        #print("video : \t",videos,'\n')
-                        for id in videos:
-                            self.search_video_url(id)
-
-                
-                self.search_video_quetions(search_url)
-            except Exception as e:
-                print(e)
-                pass
-
     def start_app(self,keyword,enable):
-        if not os.path.exists(self.path + "/" + str(keyword)):
-            os.mkdir(self.path + "/" + str(keyword))
+        if not os.path.exists(self.path + "\\" + str(keyword)):
+            os.mkdir(self.path + "\\" + str(keyword))
         self.author = str(keyword)
         person_url,user_token = self.search_people_v2(keyword)
         if user_token is not None:
@@ -328,24 +240,12 @@ if __name__ == "__main__":
         sys.argv.append('--help')
     
     parse = argparse.ArgumentParser()
-    parse.add_argument("-type",'--type',required=True,help=("Search type : question = 1,articel = 2,people = 3"),type=int)
-    parse.add_argument('-enable-video','--video',help=('download video'),type=bool,default=True)
-    parse.add_argument('-q','--question',help=("Input question id"))
-    parse.add_argument('-k','--keyword',help=('-k author name'))
-    
-    args = parse.parse_args()
-    
-    app = Zhihu()
+    parse.add_argument('-k','--keyword',required=True,help=('-k author name'))
+    parse.add_argument('-enable-video','--video',required=True,help=('download video'),type=bool,default=True)
 
-    if args.type == 1:
-        #args = parse.parse_args()
-        search_url = "https://www.zhihu.com/api/v4/questions/{}/answers?include=data[*].is_normal,admin_closed_comment,reward_info,is_collapsed,annotation_action,annotation_detail,collapse_reason,is_sticky,collapsed_by,suggest_edit,comment_count,can_comment,content,editable_content,voteup_count,reshipment_settings,comment_permission,created_time,updated_time,review_info,relevant_info,question,excerpt,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp,is_labeled,is_recognized,paid_info;data[*].mark_infos[*].url;data[*].author.follower_count,badge[*].topics&limit=5&offset=5&platform=desktop&sort_by=default".format(args.question)
-        app.search_video_quetions(search_url)
-    elif args.type == 2:
-        pass
-    elif args.type == 3:
-        #args = parse.parse_args()        
-        app.start_app(args.keyword,args.video)
+    args = parse.parse_args()
+    app = Zhihu()
+    app.start_app(args.keyword,args.video)
 
     #app.exit_app()
     

@@ -1,0 +1,22 @@
+
+#project config
+.vscode
+.idea
+venv
+
+# java test code
+*.java
+*.class
+
+#html text
+pro.code-workspace
+*.com
+
+#source
+fuchisa
+pythonfuchisa
+androidxref.com
+
+#others ignore
+python-spider-master
+python-FaceRec - code
